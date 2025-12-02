@@ -1,6 +1,16 @@
 // utils/plexChecker.js
 import fetch from 'node-fetch';
 
+// CACHE GLOBAL POUR LA SESSION DE SCAN
+// Key: "sectionID_year" (ex: "1_2024")
+// Value: Array of items metadata
+const scanCache = new Map();
+
+export function clearScanCache() {
+  scanCache.clear();
+  // console.log('🧹 Cache de scan vidé.');
+}
+
 function normalize(str) {
   if (!str) return '';
   return str.toLowerCase()
@@ -166,37 +176,45 @@ export async function checkIfInPlex(title, year, type, config, provider = null, 
 
       for (const sectionID of sectionIDs) {
         for (const scanYear of uniqueYears) {
-          let start = 0;
-          const size = 100; // On récupère par paquets de 100
-          let hasMore = true;
+          const cacheKey = `${sectionID}_${scanYear}`;
+          let items = [];
 
-          while (hasMore) {
-            // Endpoint API pour filtrer une section : /library/sections/{id}/all?year={year}
-            const url = `${plexBase}/library/sections/${sectionID}/all?type=${plexType}&year=${scanYear}&includeGuids=1&X-Plex-Container-Start=${start}&X-Plex-Container-Size=${size}&X-Plex-Token=${token}`;
+          // ⚡ OPTIMISATION CACHE : Si on a déjà scanné cette année pour cette section, on utilise le cache
+          if (scanCache.has(cacheKey)) {
+            items = scanCache.get(cacheKey);
+            // console.log(`⚡ Cache Hit: Année ${scanYear} (Section ${sectionID}) - ${items.length} items`);
+          } else {
+            // Sinon, on fait le scan complet (API)
+            let start = 0;
+            const size = 100; 
+            let hasMore = true;
             
-            const res = await fetch(url, { headers });
-            if (!res.ok) break; // Erreur section ou autre, on passe à la suivante
+            while (hasMore) {
+              const url = `${plexBase}/library/sections/${sectionID}/all?type=${plexType}&year=${scanYear}&includeGuids=1&X-Plex-Container-Start=${start}&X-Plex-Container-Size=${size}&X-Plex-Token=${token}`;
+              const res = await fetch(url, { headers });
+              if (!res.ok) break;
 
-            const json = await res.json();
-            const items = json.MediaContainer?.Metadata || [];
-            
-            // Vérification des items du paquet courant
-            for (const item of items) {
-              const externalGuids = item.Guid || [];
-              const matchId = externalGuids.some(g => g.id && g.id.includes(id));
-              const matchInternal = item.guid && item.guid.includes(id);
+              const json = await res.json();
+              const pageItems = json.MediaContainer?.Metadata || [];
+              items.push(...pageItems);
 
-              if (matchId || matchInternal) {
-                 console.log(`🎯 [M2-Ultime] Scan Année ${scanYear} (Cible: ${year}) (Section ${sectionID}) -> Trouvé : "${item.title}"`);
-                 return { found: true, plexTitle: item.title };
-              }
+              if (pageItems.length < size) hasMore = false;
+              else start += size;
             }
+            // On sauvegarde le résultat complet dans le cache
+            scanCache.set(cacheKey, items);
+            // console.log(`📥 Mise en cache: Année ${scanYear} (Section ${sectionID}) - ${items.length} items`);
+          }
 
-            // Gestion pagination
-            if (items.length < size) {
-              hasMore = false; // Plus rien à récupérer pour cette année
-            } else {
-              start += size; // On passe à la page suivante
+          // Recherche locale dans les items (qu'ils viennent du cache ou du fetch)
+          for (const item of items) {
+            const externalGuids = item.Guid || [];
+            const matchId = externalGuids.some(g => g.id && g.id.includes(id));
+            const matchInternal = item.guid && item.guid.includes(id);
+
+            if (matchId || matchInternal) {
+               console.log(`🎯 [M2-Ultime] Scan Année ${scanYear} (Cible: ${year}) (Section ${sectionID}) -> Trouvé : "${item.title}"`);
+               return { found: true, plexTitle: item.title };
             }
           }
         }

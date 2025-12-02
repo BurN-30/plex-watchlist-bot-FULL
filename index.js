@@ -1,7 +1,7 @@
 // index.js
 import { loadConfig } from './utils/configLoader.js';
 import { fetchWatchlist } from './utils/rssReader.js';
-import { checkIfInPlex } from './utils/plexChecker.js'; // Assurez-vous d'avoir remplacé le fichier utils/plexChecker.js
+import { checkIfInPlex, clearScanCache } from './utils/plexChecker.js'; // Assurez-vous d'avoir remplacé le fichier utils/plexChecker.js
 import { getDiscordClient, buildAddedEmbed, buildPendingEmbed, sendOrUpdateEmbed } from './utils/discordClient.js';
 import fs from 'fs';
 
@@ -15,6 +15,9 @@ if (fs.existsSync(FILE)) { data = JSON.parse(fs.readFileSync(FILE, 'utf-8')); }
 
 async function run() {
   try {
+    // On vide le cache de scan au début de chaque cycle pour avoir des données fraîches
+    clearScanCache();
+    
     const now    = Date.now();
     const client = await getDiscordClient(config.discordBotToken);
     console.log(`\n=== 🔁 Scan lancé à ${new Date().toLocaleTimeString()} ===`);
