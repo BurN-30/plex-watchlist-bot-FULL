@@ -1,0 +1,21 @@
+{
+  "name": "plex-watchlist-bot",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "watch": "electron . --enable-logging",
+    "bot":   "node index.js"
+  },
+  "devDependencies": {
+    "electron": "^35.2.0",
+    "chart.js": "^4.4.9",
+    "electron-store": "^10.0.1"
+  },
+  "dependencies": {
+    "discord.js": "^14.13.0",
+    "node-fetch": "^3.3.2",
+    "rss-parser": "^3.12.0"
+  }
+}

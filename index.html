@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <title>Plex Watchlist GUI</title>
+  <style>
+    body { font-family: sans-serif; margin: 0; padding: 1rem; }
+    #header { display: flex; justify-content: space-between; align-items: center; }
+    #counters { margin-top: 1rem; }
+    #logs { height: 100px; overflow-y: auto; background: #111; color: #0f0; padding: .5rem; font-size: .8rem; }
+  </style>
+</head>
+<body>
+  <div id="header">
+    <h1>📺 Plex Watchlist</h1>
+    <button id="btn-refresh">🔄 Refresh</button>
+  </div>
+  <div id="counters">
+    <span>🎬 Films en attente : <strong id="pending-films">–</strong></span>
+    <span style="margin-left:2rem">📺 Séries en attente : <strong id="pending-shows">–</strong></span>
+  </div>
+  <canvas id="sparkline" height="100"></canvas>
+  <h2>Logs</h2>
+  <div id="logs"></div>
+
+  <script src="renderer.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</body>
+</html>
